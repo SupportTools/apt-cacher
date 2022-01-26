@@ -71,8 +71,7 @@ steps:
         from_secret: k8s_dev_token
     commands:
       - bash /usr/local/bin/init-kubectl
-      - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
-      - kubectl apply -n apt-cacher -f ./k8s/deploy.yaml
+      - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
     when:
      event:
      - deployment
@@ -90,8 +89,7 @@ steps:
         from_secret: k8s_prd_token
     commands:
       - bash /usr/local/bin/init-kubectl
-      - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
-      - kubectl apply -n apt-cacher -f ./k8s/deploy.yaml
+      - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
     when:
      event:
      - deployment
