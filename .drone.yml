@@ -52,6 +52,7 @@ steps:
       - promote
       - cron
       target:
+      - dev
       - production
       - weekly
 
