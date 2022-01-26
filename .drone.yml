@@ -19,6 +19,8 @@ steps:
 
   - name: Docker Build
     image: ncrmro/docker-buildx:19.03.10
+    environment:
+      http_proxy: http://proxy.apt-cacher:3142/
     commands:
     - docker version
     - docker buildx version
@@ -35,6 +37,7 @@ steps:
   - name: Docker Publish
     image: ncrmro/docker-buildx:19.03.10
     environment:
+      http_proxy: http://proxy.apt-cacher:3142/
       DOCKER_USERNAME:
         from_secret: docker-username
       DOCKER_PASSWORD:
@@ -52,7 +55,6 @@ steps:
       - promote
       - cron
       target:
-      - dev
       - production
       - weekly
 
@@ -62,32 +64,14 @@ steps:
     commands:
       - bash ./deploy.sh
 
-  - name: Deploy-to-Dev
-    image: supporttools/kube-builder:latest
-    pull: always
-    settings:
-      kubernetes_server:
-        from_secret: k8s_dev_server
-      kubernetes_token:
-        from_secret: k8s_dev_token
-    commands:
-      - bash /usr/local/bin/init-kubectl
-      - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
-    when:
-     event:
-     - deployment
-     - promote
-     target:
-     - dev
-
   - name: Deploy-to-Production
     image: supporttools/kube-builder:latest
     pull: always
     settings:
       kubernetes_server:
-        from_secret: k8s_prd_server
+        from_secret: k8s_inf_server
       kubernetes_token:
-        from_secret: k8s_prd_token
+        from_secret: k8s_inf_token
     commands:
       - bash /usr/local/bin/init-kubectl
       - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
@@ -102,5 +86,7 @@ services:
 - name: docker-in-docker
   docker:
   image: docker:19.03.12-dind
+  environment:
+    http_proxy: http://proxy.apt-cacher:3142/
   command: ["dockerd", "--host", "0.0.0.0", "--experimental"]
   privileged: true

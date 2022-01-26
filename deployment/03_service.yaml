@@ -5,9 +5,11 @@ metadata:
     app: apt-cacher
   name: proxy
 spec:
+  type: LoadBalancer
   ports:
   - name: "proxy"
     port: 3142
     targetPort: 3142
+    protocol: TCP
   selector:
     app: apt-cacher
