@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: apt-cacher
+  labels:
+    app: apt-cacher
+  namespace: apt-cacher
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 25Gi
+  storageClassName: longhorn
+  volumeMode: Filesystem

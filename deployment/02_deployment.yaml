@@ -2,10 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: apt-cacher
+  labels:
+    app: apt-cacher
 spec:
   selector:
     matchLabels:
       app: apt-cacher
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -23,9 +27,20 @@ spec:
                 values:
                 - amd64
       containers:
-      - image: supporttools/apt-cacher:BUILD_NUMBER
+      - args:
+        - /etc/init.d/apt-cacher-ng
+        - start
+        - '&&'
+        - tail
+        - -f
+        - /var/log/apt-cacher-ng/*
+        image: supporttools/apt-cacher:BUILD_NUMBER
         imagePullPolicy: IfNotPresent
         name: apt-cacher
+        ports:
+        - containerPort: 3142
+          name: 3142tcp
+          protocol: TCP
         resources:
           limits:
             cpu: "1"
@@ -33,9 +48,18 @@ spec:
           requests:
             cpu: 50m
             memory: 64Mi
-        ports:
-        - containerPort: 3142
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 3000
-        fsGroup: 2000
+      initContainers:
+      - args:
+        - chmod
+        - -R
+        - "777"
+        - /var/cache/apt-cacher-ng
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        name: chmod
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /var/cache/apt-cacher-ng
+          name: cache
