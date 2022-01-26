@@ -39,7 +39,7 @@ spec:
         name: apt-cacher
         ports:
         - containerPort: 3142
-          name: 3142tcp
+          name: 3142
           protocol: TCP
         resources:
           limits:
@@ -62,4 +62,4 @@ spec:
           runAsUser: 0
         volumeMounts:
         - mountPath: /var/cache/apt-cacher-ng
-          name: cache
+          name: apt-cacher
