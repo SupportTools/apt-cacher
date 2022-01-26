@@ -72,7 +72,7 @@ steps:
     commands:
       - bash /usr/local/bin/init-kubectl
       - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
-      - kubectl apply -n apt-cacher -f ./deploy.yaml
+      - kubectl apply -n apt-cacher -f ./k8s/deploy.yaml
     when:
      event:
      - deployment
@@ -91,7 +91,7 @@ steps:
     commands:
       - bash /usr/local/bin/init-kubectl
       - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
-      - kubectl apply -n apt-cacher -f ./deploy.yaml
+      - kubectl apply -n apt-cacher -f ./k8s/deploy.yaml
     when:
      event:
      - deployment
