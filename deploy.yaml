@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apt-cacher
+spec:
+  selector:
+    matchLabels:
+      app: apt-cacher
+  template:
+    metadata:
+      labels:
+        app: apt-cacher
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+      containers:
+      - image: supporttools/apt-cacher:BUILD_NUMBER
+        imagePullPolicy: IfNotPresent
+        name: apt-cacher
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        ports:
+        - containerPort: 3142
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: apt-cacher
+  name: proxy
+spec:
+  ports:
+  - name: "proxy"
+    port: 3142
+    targetPort: 3142
+  selector:
+    app: apt-cacher

@@ -1,0 +1,107 @@
+---
+kind: pipeline
+type: docker
+name: apt-cacher
+
+concurrency:
+  limit: 1
+
+environment:
+  DOCKER_HOST: tcp://docker-in-docker:2375
+  DOCKER_CLI_EXPERIMENTAL: enabled
+
+steps:
+- name: Waiting for Docker to start
+  image: ncrmro/docker-buildx:19.03.10
+  commands:
+  - echo 'Waiting for docker to start...'
+  - while ! docker info; do sleep 1; done
+
+- name: Docker Build
+  image: ncrmro/docker-buildx:19.03.10
+  commands:
+  - docker version
+  - docker buildx version
+  - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  - docker buildx create --name multiarch --use
+  - docker buildx build --add-host=archive.ubuntu.com:172.27.9.27 --platform linux/amd64,linux/arm64 -f Dockerfile .
+  when:
+    event:
+      exclude:
+      - deployment
+      - promote
+      - cron
+
+- name: Docker Publish
+  image: ncrmro/docker-buildx:19.03.10
+  environment:
+    DOCKER_USERNAME:
+      from_secret: docker-username
+    DOCKER_PASSWORD:
+      from_secret: docker-password
+  commands:
+  - docker version
+  - docker buildx version
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  - docker buildx create --name multiarch --use
+  - docker buildx build --platform linux/amd64,linux/arm64 -t supporttools/apt-cacher:latest -t supporttools/apt-cacher:${DRONE_BUILD_NUMBER} --push -f Dockerfile .
+  when:
+    event:
+    - deployment
+    - promote
+    - cron
+    target:
+    - production
+    - weekly
+
+  - name: Customize-kube-files
+    image: supporttools/kube-builder:latest
+    pull: always
+    commands:
+      - bash ./deploy.sh
+
+  - name: Deploy-to-Dev
+    image: supporttools/kube-builder:latest
+    pull: always
+    settings:
+      kubernetes_server:
+        from_secret: k8s_dev_server
+      kubernetes_token:
+        from_secret: k8s_dev_token
+    commands:
+      - bash /usr/local/bin/init-kubectl
+      - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
+      - kubectl apply -n apt-cacher -f ./deploy.yaml
+    when:
+     event:
+     - deployment
+     - promote
+     target:
+     - dev
+
+  - name: Deploy-to-Production
+    image: supporttools/kube-builder:latest
+    pull: always
+    settings:
+      kubernetes_server:
+        from_secret: k8s_prd_server
+      kubernetes_token:
+        from_secret: k8s_prd_token
+    commands:
+      - bash /usr/local/bin/init-kubectl
+      - if ! kubectl get ns apt-cacher; then kubectl create ns apt-cacher; fi
+      - kubectl apply -n apt-cacher -f ./deploy.yaml
+    when:
+     event:
+     - deployment
+     - promote
+     target:
+     - production
+
+services:
+- name: docker-in-docker
+  docker:
+  image: docker:19.03.12-dind
+  command: ["dockerd", "--host", "0.0.0.0", "--experimental"]
+  privileged: true
