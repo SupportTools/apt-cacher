@@ -19,8 +19,6 @@ steps:
 
   - name: Docker Build
     image: ncrmro/docker-buildx:19.03.10
-    environment:
-      http_proxy: http://proxy.apt-cacher:3142/
     commands:
     - docker version
     - docker buildx version
@@ -37,7 +35,6 @@ steps:
   - name: Docker Publish
     image: ncrmro/docker-buildx:19.03.10
     environment:
-      http_proxy: http://proxy.apt-cacher:3142/
       DOCKER_USERNAME:
         from_secret: docker-username
       DOCKER_PASSWORD:
@@ -86,7 +83,5 @@ services:
 - name: docker-in-docker
   docker:
   image: docker:19.03.12-dind
-  environment:
-    http_proxy: http://proxy.apt-cacher:3142/
   command: ["dockerd", "--host", "0.0.0.0", "--experimental"]
   privileged: true
