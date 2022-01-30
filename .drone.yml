@@ -24,7 +24,7 @@ steps:
     - docker buildx version
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
     - docker buildx create --name multiarch --use
-    - docker buildx build --add-host=archive.ubuntu.com:172.27.9.27 --platform linux/amd64,linux/arm64 -f Dockerfile .
+    - docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile .
     when:
      event:
        exclude:
@@ -61,14 +61,32 @@ steps:
     commands:
       - bash ./deploy.sh
 
-  - name: Deploy-to-Production
+  - name: Deploy-to-Infra-A1
     image: supporttools/kube-builder:latest
     pull: always
     settings:
       kubernetes_server:
-        from_secret: k8s_inf_server
+        from_secret: k8s_inf_a1_server
       kubernetes_token:
-        from_secret: k8s_inf_token
+        from_secret: k8s_inf_a1_token
+    commands:
+      - bash /usr/local/bin/init-kubectl
+      - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
+    when:
+     event:
+     - deployment
+     - promote
+     target:
+     - production
+
+  - name: Deploy-to-Infra-A0
+    image: supporttools/kube-builder:latest
+    pull: always
+    settings:
+      kubernetes_server:
+        from_secret: k8s_inf_a0_server
+      kubernetes_token:
+        from_secret: k8s_inf_a0_token
     commands:
       - bash /usr/local/bin/init-kubectl
       - kubectl apply -n apt-cacher -f /drone/src/deployment-ready/
